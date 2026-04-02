@@ -1,0 +1,25 @@
+# Example experiment override
+# Run with: python scripts/train.py +experiment=example
+
+# Override defaults
+defaults:
+  - override /model: default
+  - override /training: default
+
+project:
+  name: example-ablation
+  seed: 123
+
+model:
+  hidden_dims: [512, 256, 128]
+  dropout: 0.2
+
+training:
+  lr: 5e-4
+  epochs: 50
+  use_amp: true
+  early_stopping:
+    patience: 15
+
+tracking:
+  tags: [ablation, hidden-dims]

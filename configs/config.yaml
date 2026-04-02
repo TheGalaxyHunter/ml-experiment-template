@@ -1,0 +1,23 @@
+defaults:
+  - model: default
+  - data: default
+  - training: default
+  - _self_
+
+project:
+  name: my-experiment
+  seed: 42
+  output_dir: outputs/${project.name}/${now:%Y-%m-%d_%H-%M-%S}
+
+tracking:
+  enabled: true
+  backend: wandb  # wandb or mlflow
+  project: ${project.name}
+  tags: []
+
+hydra:
+  run:
+    dir: ${project.output_dir}
+  sweep:
+    dir: multirun/${project.name}
+    subdir: ${hydra.job.num}
