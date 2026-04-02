@@ -1,3 +1,5 @@
+[![CI](https://github.com/TheGalaxyHunter/ml-experiment-template/actions/workflows/ci.yml/badge.svg)](https://github.com/TheGalaxyHunter/ml-experiment-template/actions/workflows/ci.yml)
+
 # ml-experiment-template
 
 **Opinionated ML experiment framework for reproducible research.**
