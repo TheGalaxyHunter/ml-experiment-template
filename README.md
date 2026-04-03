@@ -17,40 +17,62 @@ Every ML team reinvents experiment infrastructure. This template encodes hard-wo
 - **Checkpoint management**: atomic saves, best-model tracking, automatic resume
 - **CI/CD pipeline**: lint, type-check, and test on every push
 - **Docker support**: reproducible environments from dev to production
+- **Deterministic deps**: `uv.lock` pins every dependency for exact reproducibility across machines
 
 ## Quick Start
 
-### Option 1: Cookiecutter (recommended)
+This project uses [uv](https://docs.astral.sh/uv/) for fast, deterministic Python dependency management.
+
+### Install uv
 
 ```bash
-pip install cookiecutter
-cookiecutter gh:TheGalaxyHunter/ml-experiment-template
+# macOS / Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Or with Homebrew
+brew install uv
 ```
 
-### Option 2: Clone and customize
+### Set up the project
 
 ```bash
 git clone https://github.com/TheGalaxyHunter/ml-experiment-template.git my-experiment
 cd my-experiment
 rm -rf .git && git init
-pip install -e ".[dev]"
+
+# Install all dependencies (including dev tools) in one command
+uv sync
 ```
+
+`uv sync` reads `pyproject.toml` and `uv.lock`, creates a virtual environment in `.venv/`, and installs everything deterministically. No `pip install`, no `requirements.txt`, no manual venv creation.
 
 ### Run an experiment
 
 ```bash
 # Train with default config
-python scripts/train.py
+uv run python scripts/train.py
 
 # Override config from the command line (Hydra)
-python scripts/train.py training.lr=1e-4 training.epochs=50
+uv run python scripts/train.py training.lr=1e-4 training.epochs=50
 
 # Use a named experiment config
-python scripts/train.py +experiment=example
+uv run python scripts/train.py +experiment=example
 
 # Multi-run sweep
-python scripts/train.py --multirun training.lr=1e-3,1e-4,1e-5
+uv run python scripts/train.py --multirun training.lr=1e-3,1e-4,1e-5
 ```
+
+`uv run` automatically activates the project environment. No need to manually source `.venv/bin/activate`.
+
+## Reproducibility with uv.lock
+
+The `uv.lock` file is checked into version control. It pins every dependency (including transitive ones) to exact versions and hashes. This means:
+
+- **Same deps everywhere.** Every collaborator, CI runner, and Docker build installs the exact same package versions.
+- **No "works on my machine."** If it resolves locally, it resolves identically on any other machine.
+- **Auditable changes.** Dependency updates show up as lock file diffs in pull requests.
+
+To update dependencies: `uv lock --upgrade`
 
 ## Project Structure
 
@@ -58,7 +80,8 @@ python scripts/train.py --multirun training.lr=1e-3,1e-4,1e-5
 ml-experiment-template/
 ├── README.md
 ├── LICENSE
-├── pyproject.toml
+├── pyproject.toml              # Project metadata and dependencies
+├── uv.lock                     # Pinned dependency lock file
 ├── Makefile                    # train, test, lint, format
 ├── Dockerfile
 ├── .github/workflows/ci.yml   # CI pipeline
@@ -101,12 +124,14 @@ This template is opinionated by design. Every choice serves a specific purpose:
 | Abstract base classes | Enforce interface contracts. New models/datasets plug in without touching the trainer. |
 | Structured logging | Machine-parseable logs. Grep-friendly. Dashboard-ready. |
 | Separate concerns | `src/` for library code, `scripts/` for entry points, `configs/` for experiments. |
+| uv for dependency management | Fast installs, deterministic lock file, replaces pip + venv + pip-tools in one tool. |
 
 For the full rationale, see [docs/philosophy.md](docs/philosophy.md).
 
 ## Common Commands
 
 ```bash
+make install                # Install all dependencies via uv sync
 make train                  # Run training with default config
 make test                   # Run test suite
 make lint                   # Lint with ruff
@@ -124,18 +149,32 @@ make clean                  # Remove artifacts and caches
 1. Create `src/models/my_model.py`
 2. Subclass `BaseModel` and implement `forward()`, `compute_loss()`
 3. Add a config file `configs/model/my_model.yaml`
-4. Run: `python scripts/train.py model=my_model`
+4. Run: `uv run python scripts/train.py model=my_model`
 
 ### Add a new dataset
 
 1. Create `src/data/my_dataset.py`
 2. Subclass `BaseDataModule` and implement `setup()`, `train_dataloader()`, `val_dataloader()`
 3. Add a config file `configs/data/my_dataset.yaml`
-4. Run: `python scripts/train.py data=my_dataset`
+4. Run: `uv run python scripts/train.py data=my_dataset`
+
+### Add a new dependency
+
+```bash
+# Add a runtime dependency
+uv add scikit-learn
+
+# Add a dev-only dependency
+uv add --group dev hypothesis
+
+# Update the lock file after manual pyproject.toml edits
+uv lock
+```
 
 ## Requirements
 
 - Python 3.10+
+- [uv](https://docs.astral.sh/uv/) (install via `curl -LsSf https://astral.sh/uv/install.sh | sh`)
 - PyTorch 2.0+
 - See `pyproject.toml` for full dependency list
 

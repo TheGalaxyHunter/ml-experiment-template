@@ -7,12 +7,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-# Python dependencies (install first for layer caching)
-COPY pyproject.toml .
-RUN pip install --no-cache-dir -e .
+# Install uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+# Install Python dependencies (copy lock + manifest first for layer caching)
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-dev
 
 # Copy source code
 COPY . .
 
 # Default: run training
-ENTRYPOINT ["python", "scripts/train.py"]
+ENTRYPOINT ["uv", "run", "python", "scripts/train.py"]

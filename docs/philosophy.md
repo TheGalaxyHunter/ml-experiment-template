@@ -109,6 +109,31 @@ docs/         # Documentation
 - **Verifiable.** `check_reproducibility()` actually tests that a function produces identical outputs.
 - **Fork-safe.** `fork_rng()` isolates stochastic operations without polluting the global RNG state.
 
+## Why uv for dependency management
+
+**The problem:** Python dependency management is fragmented. Most ML projects rely on pip + venv (or conda), a `requirements.txt` with unpinned versions, and hope. Reproducing an environment six months later often fails because transitive dependencies shifted. `pip-tools` helps but adds another layer. Conda solves some problems but introduces its own ecosystem lock-in and slow resolution.
+
+**Why uv:**
+
+- **One tool.** uv replaces pip, venv, pip-tools, and virtualenv. `uv sync` creates the environment and installs dependencies in one command.
+- **Deterministic lock file.** `uv.lock` pins every dependency (including transitive) to exact versions and hashes. Check it into git. Every machine gets identical packages.
+- **Fast.** Written in Rust. Cold installs that take pip 30+ seconds finish in under 5 seconds. Cached installs are near-instant.
+- **pyproject.toml native.** No `requirements.txt`, no `setup.py`, no `setup.cfg`. One manifest file for metadata, dependencies, and tool config.
+- **CI-friendly.** `astral-sh/setup-uv` GitHub Action makes CI setup trivial. Lock file ensures CI matches local dev exactly.
+
+**Why this matters for ML specifically:**
+
+- ML dependency trees are deep (PyTorch alone pulls in dozens of transitive packages). Deterministic resolution prevents silent drift.
+- Reproducing a training run from six months ago requires the exact same package versions. The lock file guarantees this.
+- Docker builds are faster because uv's caching and resolution are an order of magnitude quicker than pip.
+
+**Alternatives considered:**
+
+- `pip + requirements.txt`: no lock file, no resolution guarantee, slow.
+- `pip-tools`: adds lock file but still needs venv management separately.
+- `conda`: good for system-level deps (CUDA), but slow resolution, large environments, and a separate package ecosystem.
+- `poetry`: lock file support but slower than uv, and less ML-ecosystem-friendly.
+
 ## On mixed precision (AMP)
 
 Mixed precision is on by default because:
